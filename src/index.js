@@ -24,51 +24,19 @@ function Square(props) {
 
 /* to collect data from multiple children or to have two child components comunicate with one another, the SHARED STATE MUST BE DECLARED IN THE PARENT COMPONENT. */
 class Board extends React.Component {
-  /* initial board state is an array with 9 null values, corresponding to the 9 squares */
-  constructor(props) {
-    super(props);
-    this.state = {
-      squares: Array(9).fill(null),
-      xIsNext: true
-    };
-  }
-
-  handleClick(i) {
-    /* why create a copy? helps us avoid complexity when creating our history and 'jump back' feature. Much easier to keep track of changes in an immutable object; if object being referenced is different than previous one, object has changed. */
-    const squares = this.state.squares.slice();
-
-    if (calculateWinner(squares) || squares[i]) {
-      return;
-    }
-
-    squares[i] = this.state.xIsNext ? "X" : "O";
-    this.setState({ squares, xIsNext: !this.state.xIsNext });
-  }
-
   renderSquare(i) {
     /* each square will now receive a value prop that will either be 'X', 'O', or null (for empty squares) */
     return (
       <Square
-        value={this.state.squares[i]}
-        onClick={() => this.handleClick(i)}
+        value={this.props.squares[i]}
+        onClick={() => this.props.onClick(i)}
       />
     );
   }
 
   render() {
-    const winner = calculateWinner(this.state.squares);
-
-    let status;
-
-    if (winner) {
-      status = "Winner: " + winner;
-    } else {
-      status = "Next player: " + (this.state.xIsNext ? "X" : "O");
-    }
-
     return (
       <div>
-        <div className="status">{status}</div>
         <div className="board-row">
           {this.renderSquare(0)}
           {this.renderSquare(1)}
@@ -111,15 +79,69 @@ function calculateWinner(squares) {
 }
 
 class Game extends React.Component {
+  /* why is history in the Game component? So the Game has full control over the Board component and can thus instruct the board to render previous turns from the history */
+
+  /* initial board state is an array with 9 null values, corresponding to the 9 squares */
+  constructor(props) {
+    super(props);
+    this.state = {
+      history: [
+        {
+          squares: Array(9).fill(null)
+        }
+      ],
+      xIsNext: true
+    };
+  }
+
+  handleClick(i) {
+    /* why create a copy? helps us avoid complexity when creating our history and 'jump back' feature. Much easier to keep track of changes in an immutable object; if object being referenced is different than previous one, object has changed. */
+    const history = this.state.history;
+    const current = history[history.length - 1];
+    const squares = current.squares.slice();
+
+    if (calculateWinner(squares) || squares[i]) {
+      return;
+    }
+    /* concat instead of push because concat doesn't mutate the original array, which is preferred */
+    squares[i] = this.state.xIsNext ? "X" : "O";
+    this.setState({
+      history: history.concat([{ squares }]),
+      xIsNext: !this.state.xIsNext
+    });
+  }
+
   render() {
+    /* use the most recent history entry to determine and display game status */
+    const history = this.state.history;
+    const current = history[history.length - 1];
+    const winner = calculateWinner(current.squares);
+
+    /* displaying the history of moves with map*/
+    const moves = history.map((step, move) => {
+      const desc = move ? "Go to move #" + move : "Go to game start";
+      return (
+        <li key={move}>
+          <button onClick={() => this.jumpTo(move)}>{desc}</button>
+        </li>
+      );
+    });
+
+    let status;
+    if (winner) {
+      status = "Winner " + winner;
+    } else {
+      status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+    }
+    /* https://reactjs.org/tutorial/tutorial.html#picking-a-key - good example of why we need keys with list rendering in React - long story short, it's so React has a efficient means of determining what, if any, child elements have changed in between renders. When no key is specified, the array index is used as default */
     return (
       <div className="game">
         <div className="game-board">
-          <Board />
+          <Board squares={current.squares} onClick={i => this.handleClick(i)} />
         </div>
         <div className="game-info">
-          <div>{/* status */}</div>
-          <div>{/* TODO */}</div>
+          <div>{status}</div>
+          <ol>{moves}</ol>
         </div>
       </div>
     );
