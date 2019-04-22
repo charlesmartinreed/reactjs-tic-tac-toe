@@ -90,13 +90,25 @@ class Game extends React.Component {
           squares: Array(9).fill(null)
         }
       ],
+      stepNumber: 0,
       xIsNext: true
     };
   }
 
+  /* history handler methods */
+  /* x goes first, gets even numbers */
+  jumpTo(step) {
+    this.setState({
+      stepNumber: step,
+      xIsNext: step % 2 === 0
+    });
+  }
+
   handleClick(i) {
     /* why create a copy? helps us avoid complexity when creating our history and 'jump back' feature. Much easier to keep track of changes in an immutable object; if object being referenced is different than previous one, object has changed. */
-    const history = this.state.history;
+
+    /* by slicing history up the bounds of the stepNumber, we ensure that, if we go back to an earlier point and make a new move, we discard the old 'future' history */
+    const history = this.state.history.slice(0, this.state.stepNumber + 1);
     const current = history[history.length - 1];
     const squares = current.squares.slice();
 
@@ -107,6 +119,7 @@ class Game extends React.Component {
     squares[i] = this.state.xIsNext ? "X" : "O";
     this.setState({
       history: history.concat([{ squares }]),
+      stepNumber: history.length,
       xIsNext: !this.state.xIsNext
     });
   }
@@ -114,7 +127,7 @@ class Game extends React.Component {
   render() {
     /* use the most recent history entry to determine and display game status */
     const history = this.state.history;
-    const current = history[history.length - 1];
+    const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
 
     /* displaying the history of moves with map*/
