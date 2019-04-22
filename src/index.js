@@ -2,30 +2,52 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
-class Square extends React.Component {
+function Square(props) {
   /* state should be considered as private to a React component */
-  constructor(props) {
-    /* in JS, everything that has a constructor should first make a call to the parent class via super. React components should make super call with super(props)*/
+  /* constructor(props) {
+    /* in JS, everything that has a constructor should first make a call to the parent class via super. React components should make super call with super(props)
     super(props);
 
     this.state = {
       value: null
     };
-  }
+  }*/
 
   /* re-render the square that corresponds with the updated value in this.state, 'X' or 'O', when the button is clicked */
-  render() {
-    return (
-      <button className="square" onClick={() => this.setState({ value: "X" })}>
-        {this.state.value}
-      </button>
-    );
-  }
+  /* React practice is to use on[Event] for props that represent events and handle[Event] for methods that handle the events*/
+  return (
+    <button className="square" onClick={props.onClick}>
+      {props.value}
+    </button>
+  );
 }
 
+/* to collect data from multiple children or to have two child components comunicate with one another, the SHARED STATE MUST BE DECLARED IN THE PARENT COMPONENT. */
 class Board extends React.Component {
+  /* initial board state is an array with 9 null values, corresponding to the 9 squares */
+  constructor(props) {
+    super(props);
+    this.state = {
+      squares: Array(9).fill(null),
+      xIsNext: true
+    };
+  }
+
+  handleClick(i) {
+    /* why create a copy? helps us avoid complexity when creating our history and 'jump back' feature. Much easier to keep track of changes in an immutable object; if object being referenced is different than previous one, object has changed. */
+    const squares = this.state.squares.slice();
+    squares[i] = this.state.xIsNext ? "X" : "O";
+    this.setState({ squares, xIsNext: !this.state.xIsNext });
+  }
+
   renderSquare(i) {
-    return <Square value={i} />;
+    /* each square will now receive a value prop that will either be 'X', 'O', or null (for empty squares) */
+    return (
+      <Square
+        value={this.state.squares[i]}
+        onClick={() => this.handleClick(i)}
+      />
+    );
   }
 
   render() {
